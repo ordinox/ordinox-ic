@@ -16,16 +16,16 @@ const runCommand = (command) => {
 };
 
 const main = (count) => {
-  // console.log(`register ${signers.length} signers to canister`);
-  // let signerStr = "";
-  // for (const signer of signers) {
-  //   signerStr += `"${signer}";`;
-  // }
-  // runCommand(
-  //   `dfx canister call ordinox_tss_canister register_signers '(vec {${signerStr}})'`
-  // );
-  // console.log("set threshold to canister");
-  // runCommand("dfx canister call ordinox_tss_canister set_threshold 5");
+  console.log(`register ${signers.length} signers to canister`);
+  let signerStr = "";
+  for (const signer of signers) {
+    signerStr += `"${signer}";`;
+  }
+  runCommand(
+    `dfx canister call ordinox_tss_canister register_signers '(vec {${signerStr}})'`
+  );
+  console.log("set threshold to canister");
+  runCommand("dfx canister call ordinox_tss_canister set_threshold 5");
 
   console.log(`demo ${count} number of withdrawals`);
   for (let i = 0; i < count; i++) {
