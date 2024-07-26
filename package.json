@@ -2,7 +2,11 @@
   "name": "ordinox-tss-canister",
   "version": "0.0.1",
   "description": "Ordinox TSS Canister",
+  "scripts": {
+    "test": "node ./demo/index.js"
+  },
   "dependencies": {
+    "nodemon": "^3.1.4",
     "secp256k1": "^5.0.0"
   }
 }

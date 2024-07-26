@@ -7,13 +7,13 @@ function get_text_in_double_quotes() {
 test -z "$1" && echo "USAGE: $0 <message to sign and verify>" && exit 1
 
 message="$1"
-echo message="$message"
+echo message = "$message"
 
 signature_hex=$(get_text_in_double_quotes "$(dfx canister call ordinox_tss_canister sign "$message" | grep signature)")
-echo signature_hex="$signature_hex"
+echo signature_hex = "$signature_hex"
 
 public_key_hex=$(get_text_in_double_quotes "$(dfx canister call ordinox_tss_canister public_key | grep public_key)")
-echo public_key_hex="$public_key_hex"
+echo public_key_hex = "$public_key_hex"
 
 node <<END
 const secp256k1 = require("secp256k1");
@@ -22,5 +22,5 @@ let signature = new Uint8Array(Buffer.from("${signature_hex}", "hex"));
 let public_key = new Uint8Array(Buffer.from("${public_key_hex}", "hex"));
 let message_hash = new Uint8Array(crypto.createHash('sha256').update('${message}','utf-8').digest());
 let verified = secp256k1.ecdsaVerify(signature, message_hash, public_key);
-console.log("verified = ", verified)
+console.log("verified =", verified)
 END
