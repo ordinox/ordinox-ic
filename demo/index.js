@@ -1,44 +1,49 @@
+const util = require("util");
 const { exec } = require("child_process");
+const execAsync = util.promisify(exec);
 const signers = require("./signers");
 
-const runCommand = (command) => {
-  exec(command, (err, stdout, stderr) => {
-    if (err || stderr) {
-      if (err) {
-        console.error(err.message);
-      } else {
-        console.error(`Canister error: ${stderr}`);
-      }
-    } else {
-      console.log(stdout);
-    }
-  });
+const runCommand = async (command) => {
+  try {
+    const { stdout, stderr } = await execAsync(command);
+    if (stderr) console.error("Canister error:", stderr);
+    else return stdout;
+  } catch (err) {
+    console.error(err.message);
+  }
 };
 
-const main = (count) => {
+const main = async (count) => {
   console.log(`register ${signers.length} signers to canister`);
   let signerStr = "";
   for (const signer of signers) {
     signerStr += `"${signer}";`;
   }
-  runCommand(
+  await runCommand(
     `dfx canister call ordinox_tss_canister register_signers '(vec {${signerStr}})'`
   );
   console.log("set threshold to canister");
-  runCommand("dfx canister call ordinox_tss_canister set_threshold 5");
+  await runCommand("dfx canister call ordinox_tss_canister set_threshold 5");
+  console.log("reset requests approval state");
+  await runCommand("dfx canister call ordinox_tss_canister reset_requests");
 
   console.log(`demo ${count} number of withdrawals`);
   for (let i = 0; i < count; i++) {
     const cnt = Math.floor(Math.random() * 10);
     console.log(`${cnt} node(signer)s approve this withdrawal request`);
     for (let j = 0; j < cnt; j++) {
-      runCommand(
+      await runCommand(
         `dfx canister call ordinox_tss_canister signer_approve '("${
           signers[j]
-        }","${j + 1}")'`
+        }","${i + 1}")'`
       );
     }
   }
 };
 
-main(5);
+main(5)
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

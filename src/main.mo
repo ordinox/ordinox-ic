@@ -24,6 +24,16 @@ actor {
     }) -> async ({ signature : Blob });
   };
 
+  type SignResult = {
+    #Ok : { signature_hex : Text };
+    #Err : Text;
+  };
+
+  type ApproveResult = {
+    #Ok : { signature_hex : Text };
+    #Err : Text;
+  };
+
   let ic : IC = actor ("aaaaa-aa");
   private stable var threshold : Nat = 0;
   private stable var signers : [Text] = [];
@@ -55,10 +65,14 @@ actor {
     return threshold;
   };
 
-  public func signer_approve(signer : Text, request_id : Text) : async Any {
+  public func reset_requests() : async () {
+    requests := HashMap.HashMap<Text, Nat>(0, Text.equal, Text.hash);
+  };
+
+  public func signer_approve(signer : Text, request_id : Text) : async ApproveResult {
     let exists = Array.find<Text>(signers, func x = x == signer);
     if (exists == null) {
-      return false;
+      return #Err("Signer does not exist");
     };
     let request = requests.get(request_id);
     let num_approved = switch request {
@@ -67,9 +81,19 @@ actor {
     };
     requests.put(request_id, num_approved + 1);
     if (num_approved + 1 >= threshold) {
-      return await sign(request_id);
+      let signResult = await sign(request_id);
+      switch (signResult) {
+        case (#Err(signError)) {
+          return #Err(signError);
+        };
+        case (#Ok(signature)) {
+          return #Ok({
+            signature_hex = signature.signature_hex;
+          });
+        };
+      };
     };
-    return true;
+    return #Ok({ signature_hex = "" });
   };
 
   public shared (msg) func public_key() : async {
@@ -89,10 +113,7 @@ actor {
     };
   };
 
-  public shared (msg) func sign(message : Text) : async {
-    #Ok : { signature_hex : Text };
-    #Err : Text;
-  } {
+  public shared (msg) func sign(message : Text) : async SignResult {
     let caller = Principal.toBlob(msg.caller);
     try {
       let message_hash : Blob = Blob.fromArray(SHA256.sha256(Blob.toArray(Text.encodeUtf8(message))));
