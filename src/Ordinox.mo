@@ -2,12 +2,9 @@ import Array "mo:base/Array";
 import HashMap "mo:base/HashMap";
 import Text "mo:base/Text";
 
-import BitcoinApi "./bitcoin/BitcoinApi";
-import Constants "./utils/Constants";
-
 actor {
   type ApproveResult = {
-    #Ok : {};
+    #Ok : { tx_info : Text };
     #Err : Text;
   };
 
@@ -57,13 +54,13 @@ actor {
     };
     requests.put(request_id, num_approved + 1);
     if (num_approved + 1 >= threshold) {
-      await generate_transaction();
+      return #Ok({ tx_info = await generate_transaction() });
     };
-    return #Ok({ signature_hex = "" });
+    return #Ok({ tx_info = "" });
   };
 
-  func generate_transaction() : async () {
-    // TODO: generate tx
-    await BitcoinApi.send_transaction(Constants.NETWORK, []);
+  func generate_transaction() : async Text {
+    // TODO: create runes transfer transaction
+    return "0200000001abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890000000006b483045022100f3b9a7b7b7c3b8a3b7b7c7d8f8e9a8b7b7b9c7b9b9b9c7b9b9c7b9b9b9b9b9b022100d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7d8e7012103b9b7c7b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9bffffffff0280f0fa02000000001976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac10270000000000001976a91489abcdefabbaabbaabbaabbaabbaabbaabbaabbaabbaabbaabbaabbaabba88ac00000000";
   };
 };

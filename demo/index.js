@@ -13,6 +13,33 @@ const runCommand = async (command) => {
   }
 };
 
+const extractValue = (str, key = undefined) => {
+  str ||= "";
+  if (key) {
+    const keyIndex = str.indexOf(key);
+    if (keyIndex >= 0) str = str.slice(keyIndex + key.length);
+  }
+
+  let quoteIndex = str.indexOf('"');
+  if (quoteIndex >= 0) {
+    str = str.slice(quoteIndex + 1);
+    quoteIndex = str.indexOf('"');
+    if (quoteIndex >= 0) str = str.slice(0, quoteIndex);
+  }
+  return str;
+};
+
+const signByECDSA = async (tx_info) => {
+  let publicKey = await runCommand("dfx canister call ic_canister public_key");
+  publicKey = extractValue(publicKey);
+
+  let signature = await runCommand(
+    `dfx canister call ic_canister sign ${tx_info}`
+  );
+  signature = extractValue(signature);
+  return signature;
+};
+
 const main = async (count) => {
   console.log(`register ${signers.length} signers to canister`);
   let signerStr = "";
@@ -32,11 +59,17 @@ const main = async (count) => {
     const cnt = Math.floor(Math.random() * 10);
     console.log(`${cnt} node(signer)s approve this withdrawal request`);
     for (let j = 0; j < cnt; j++) {
-      await runCommand(
+      let resp = await runCommand(
         `dfx canister call ordinox_canister approve_request '("${
           signers[j]
         }","${i + 1}")'`
       );
+      resp = extractValue(resp);
+      if (resp.length > 0) {
+        const signature = await signByECDSA(resp);
+        console.log(`>> Signature for request ${i + 1}: ${signature}`);
+        break;
+      }
     }
   }
 };
