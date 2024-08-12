@@ -1,7 +1,11 @@
 {
   "canisters": {
-    "ordinox_tss_canister": {
-      "main": "src/main.mo",
+    "ordinox_canister": {
+      "main": "src/Ordinox.mo",
+      "type": "motoko"
+    },
+    "ic_canister": {
+      "main": "src/IC.mo",
       "type": "motoko"
     }
   },
