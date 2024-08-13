@@ -29,15 +29,21 @@ const extractValue = (str, key = undefined) => {
   return str;
 };
 
-const signByECDSA = async (tx_info) => {
+const signByECDSA = async (reqId, txInfo) => {
   let publicKey = await runCommand("dfx canister call ic_canister public_key");
   publicKey = extractValue(publicKey);
 
-  let signature = await runCommand(
-    `dfx canister call ic_canister sign ${tx_info}`
+  let signature1 = await runCommand(
+    `dfx canister call ic_canister sign '("${reqId}","${txInfo}")'`
   );
-  signature = extractValue(signature);
-  return signature;
+  signature1 = extractValue(signature1);
+
+  let signature2 = await runCommand(
+    `dfx canister call ic_canister get_signature ${reqId}`
+  );
+  signature2 = extractValue(signature2);
+  if (signature1 === signature2) return signature1;
+  return null;
 };
 
 const main = async (count) => {
@@ -56,18 +62,17 @@ const main = async (count) => {
 
   console.log(`demo ${count} number of withdrawals`);
   for (let i = 0; i < count; i++) {
+    const reqId = i + 1;
     const cnt = Math.floor(Math.random() * 10);
     console.log(`${cnt} node(signer)s approve this withdrawal request`);
     for (let j = 0; j < cnt; j++) {
       let resp = await runCommand(
-        `dfx canister call ordinox_canister approve_request '("${
-          signers[j]
-        }","${i + 1}")'`
+        `dfx canister call ordinox_canister approve_request '("${signers[j]}","${reqId}")'`
       );
       resp = extractValue(resp);
       if (resp.length > 0) {
-        const signature = await signByECDSA(resp);
-        console.log(`>> Signature for request ${i + 1}: ${signature}`);
+        const signature = await signByECDSA(reqId, resp);
+        console.log(`>> Signature for request ${reqId}: ${signature}`);
         break;
       }
     }

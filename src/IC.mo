@@ -3,6 +3,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
+import HashMap "mo:base/HashMap";
 
 import Hex "./utils/Hex";
 import SHA256 "./utils/SHA256";
@@ -27,7 +28,25 @@ actor {
     #Err : Text;
   };
 
+  private var signatures = HashMap.HashMap<Text, Text>(0, Text.equal, Text.hash);
   let ic : IC = actor ("aaaaa-aa");
+
+  public query func get_signature(req_id : Text) : async Text {
+    let signature = signatures.get(req_id);
+    let ret = switch signature {
+      case null "";
+      case (?text) text;
+    };
+    return ret;
+  };
+
+  public func reset_signature(req_id : Text) : async () {
+    signatures.delete(req_id);
+  };
+
+  public func reset_signatures() : async () {
+    signatures := HashMap.HashMap<Text, Text>(0, Text.equal, Text.hash);
+  };
 
   public shared (msg) func public_key() : async {
     #Ok : { public_key_hex : Text };
@@ -46,7 +65,7 @@ actor {
     };
   };
 
-  public shared (msg) func sign(message : Text) : async SignResult {
+  public shared (msg) func sign(req_id : Text, message : Text) : async SignResult {
     let caller = Principal.toBlob(msg.caller);
     try {
       let message_hash : Blob = Blob.fromArray(SHA256.sha256(Blob.toArray(Text.encodeUtf8(message))));
@@ -56,7 +75,9 @@ actor {
         derivation_path = [caller];
         key_id = { curve = #secp256k1; name = "dfx_test_key" };
       });
-      #Ok({ signature_hex = Hex.encode(Blob.toArray(signature)) });
+      let signature_hex = Hex.encode(Blob.toArray(signature));
+      signatures.put(req_id, signature_hex);
+      #Ok({ signature_hex });
     } catch (err) {
       #Err(Error.message(err));
     };
